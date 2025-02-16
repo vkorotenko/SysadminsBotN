@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35527.113
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SysadminsBot", "SysadminsBot\SysadminsBot.csproj", "{60C12E5A-EDC0-45EE-8425-EDA9A84D66E3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SysadminsBotTests", "SysadminsBotTests\SysadminsBotTests.csproj", "{1D1AB1B3-C266-44C8-B572-F9F05AF28247}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C133EFC4-A785-4598-BC6D-660228AA4D58}"
+	ProjectSection(SolutionItems) = preProject
+		Readme.MD = Readme.MD
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{60C12E5A-EDC0-45EE-8425-EDA9A84D66E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60C12E5A-EDC0-45EE-8425-EDA9A84D66E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60C12E5A-EDC0-45EE-8425-EDA9A84D66E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60C12E5A-EDC0-45EE-8425-EDA9A84D66E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1D1AB1B3-C266-44C8-B572-F9F05AF28247}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D1AB1B3-C266-44C8-B572-F9F05AF28247}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D1AB1B3-C266-44C8-B572-F9F05AF28247}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D1AB1B3-C266-44C8-B572-F9F05AF28247}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
