@@ -3,6 +3,8 @@ using RestSharp;
 using SysadminsBot.Worker;
 using System.Text;
 using SysadminsBot.Interfaces;
+using System.IO;
+using System.Net;
 
 namespace SysadminsBot;
 
@@ -139,6 +141,7 @@ public class ChatBot(Settings settings)
             return;
         }
 
+        last.Body = last.Body.Replace("\n", "\\n").Replace("\r", "\\r");
         IAiInterface module = _settings.Module switch
         {
             "localdeep" => new LocalDeep(),
@@ -159,13 +162,23 @@ public class ChatBot(Settings settings)
         ctx.Add(MakeContext(encoding, "%CE%F2%EF%F0%E0%E2%E8%F2%FC+%28Ctrl%2BEnter%29"), "post");
         var address = "https://sysadmins.ru/posting.php?mode=reply&t=" + last.Pid;
 
-
+        var baseAddress = new Uri("https://sysadmins.ru");
+        var cookieContainer = new CookieContainer();
         // Send the POST request
-        using var client = new HttpClient();
+        using var handler = new HttpClientHandler();
+        using var client = new HttpClient(handler);
+        {
+            handler.CookieContainer = cookieContainer;
+        }
+
+        
+        cookieContainer.Add(baseAddress, new Cookie("sysadminsnew_sid", Sid));
+
         var rsp = await client.PostAsync(address, ctx);
         // Check the response
         if (rsp.IsSuccessStatusCode)
         {
+            var body = await rsp.Content.ReadAsStringAsync();
             Console.WriteLine("Add comment to: " + last.Body);
             Console.WriteLine("Answer is: " + answer.Answer);
             return;
