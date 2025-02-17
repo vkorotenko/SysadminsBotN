@@ -1,11 +1,4 @@
-﻿using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 
 namespace SysadminsBot
 {
@@ -48,25 +41,5 @@ namespace SysadminsBot
         public string Prompt { get; set; } = "";
         [JsonPropertyName("stream")]
         public bool Stream = false;
-    }
-    public class LocalDeepSeek
-    {
-        public async Task<string?> Reply(string body)
-        {
-            var chat = "http://localhost:11434/api/chat";
-            var generate = "http://localhost:11434/api/generate";
-            var client = new HttpClient();
-            client.Timeout = new TimeSpan(0, 0, 4, 0);
-            var request = new HttpRequestMessage(HttpMethod.Post, generate);
-            // request.Headers.Add("Accept", "application/json");
-            var model = new ReqModel { Prompt = body ,Stream = false};
-            var prep = JsonSerializer.Serialize(model);
-            var content = new StringContent(prep, null, "application/json");
-            request.Content = content;
-            var response = await client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
-            Console.WriteLine(await response.Content.ReadAsStringAsync());
-            return await response.Content.ReadAsStringAsync();
-        }
     }
 }

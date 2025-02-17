@@ -8,11 +8,8 @@
         public required string[] SkipUsers { get; set; }
         public required string ApiKey { get; set; }
         public required string BaseUrl { get; set; }
-    }
-
-    public class Topic
-    {
-        public string Name { get; set; }
-        public string Url { get; set; }
+        public required int PollingInterval { get; set; }
+        public required string Module { get; set; }
+        public required string ScriptPath { get; set; }
     }
 }

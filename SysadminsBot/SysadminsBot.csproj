@@ -6,10 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="appsettings.Debug.json" />
-  </ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="HtmlAgilityPack" Version="1.11.72" />
 		<PackageReference Include="Microsoft.AspNetCore.SystemWebAdapters" Version="2.0.0" />
@@ -23,6 +19,9 @@
 		<PackageReference Include="RestSharp" Version="112.1.0" />
 	</ItemGroup>
 	<ItemGroup>
+	  <None Update="appsettings.Debug.json">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
 	  <None Update="appsettings.json">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>

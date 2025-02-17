@@ -1,54 +1,28 @@
 ﻿using HtmlAgilityPack;
-using Microsoft.AspNetCore.Hosting.Server;
 using RestSharp;
+using SysadminsBot.Worker;
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Web;
+using SysadminsBot.Interfaces;
 
 namespace SysadminsBot;
 
-public class ChatBot(string user, string password, string[] topics, string[] skipUsers, string apiKey)
+public class ChatBot(Settings settings)
 {
-    private const string Area = "https://sysadmins.ru/forum1.html";
     private const string LoginAddress = "https://sysadmins.ru/login.php";
-    private readonly string _user = user;
-    private readonly string _password = password;
-    private readonly string[] _topics = topics;
-    private readonly string[] _skipUsers = skipUsers;
-    private readonly HttpClient _client = new HttpClient();
-    private readonly DeepSeekResult _deepSeek = new DeepSeekResult(apiKey);
+    private readonly string _user = settings.User;
+    private readonly string _password = settings.Password;
+    private readonly string[] _topics = settings.Topics.Select(topic => topic.Url).ToArray();
+    private readonly string[] _skipUsers = settings.SkipUsers;
+    private readonly Settings _settings = settings;
+    private readonly int _pollingInterval = settings.PollingInterval;
     public string LastUser { get; private set; } = "";
-    public string Sid { get; private set; }
+    public string Sid { get; private set; } = "";
     public bool IsLoggedIn { get; set; }
     public async Task TalkAsync()
     {
-
         await Login();
-        if (IsLoggedIn)
-        {
-            var client = new RestClient(Area);
-            var request = new RestRequest();
-            var domain = ".sysadmins.ru";
-            var path = "/";
-            //1739004710
-            var dateTime1 = DateTime.Now;
-            var unixTimeSeconds = new DateTimeOffset(dateTime1).ToUnixTimeSeconds();
-
-            request.AddCookie("sysadminsnew_sid", Sid, path, domain);
-            request.AddCookie("sysadminsnew___lastvisit", unixTimeSeconds.ToString(), path, domain);
-            var response = await client.GetAsync(request);
-            // ParseHtml(response.Content);
-
-            foreach (var topic in _topics)
-            {
-                await ParseTopic(topic);
-            }
-        }
-        else
-        {
-            await Login();
-        }
-        Thread.Sleep(1000);
+        if (IsLoggedIn) foreach (var topic in _topics) await ParseTopic(topic);
+        Thread.Sleep(_pollingInterval * 1000);
     }
 
     private RestRequest CreateRequest()
@@ -76,8 +50,8 @@ public class ChatBot(string user, string password, string[] topics, string[] ski
         html.LoadHtml(response.Content);
         var node = html.DocumentNode
             .SelectSingleNode("//td[contains(@class, 'navbig')]");
-        var hrefs = node.ChildNodes.Where(x => x.Name == "a").ToList();
-        var last = hrefs[hrefs.Count - 2].Attributes["href"].Value;
+        var nodes = node.ChildNodes.Where(x => x.Name == "a").ToList();
+        var last = nodes[nodes.Count - 2].Attributes["href"].Value;
 
         var pageUrl = new Uri("https://sysadmins.ru/" + last);
 
@@ -99,35 +73,33 @@ public class ChatBot(string user, string password, string[] topics, string[] ski
             if (message.Name == "tr" && message.InnerHtml.Contains("javascript:putName("))
             {
 
-                var mtable = message.SelectSingleNode("td/table");
+                var messageTable = message.SelectSingleNode("td/table");
                 var pm = new ForumMessage();
 
-                var body = mtable.SelectSingleNode("tr/td/span[contains(@class, 'postbody')]");
+                var body = messageTable.SelectSingleNode("tr/td/span[contains(@class, 'postbody')]");
                 pm.Mid = body.Id;
                 //https://sysadmins.ru/topic466970-52670.html
                 pm.Pid = pageUrl.AbsoluteUri.Replace("https://sysadmins.ru/topic", "").Split("-")[0];
 
+                var rawText = body.ParentNode.InnerText;
 
+                var bodyes = messageTable.SelectNodes("tr/td/span[contains(@class, 'postbody')]");
+                var sign = bodyes.Last().InnerText;
+                rawText = rawText.Replace(sign, "");
 
-                var bodyes = mtable.SelectNodes("tr/td/span[contains(@class, 'postbody')]");
-
-                for (var i = 0; i < bodyes.Count; i++)
-                {
-                    var b = bodyes[i];
-                    if (!string.IsNullOrWhiteSpace(b.InnerText) && i < bodyes.Count - 1)
-                        pm.Body += b.InnerText + "\r\n";
-                }
+                pm.Body = rawText;
                 var nameNode = message.SelectSingleNode("td/span/b/a");
 
                 pm.Author = nameNode.InnerText;
 
-                var datatitle = mtable.SelectSingleNode("tr/td/span[contains(@class, 'postdetails')]");
+                var datatitle = messageTable.SelectSingleNode("tr/td/span[contains(@class, 'postdetails')]");
 
                 var datel = datatitle.ChildNodes[0].InnerText.Replace("Добавлено: ", "");
                 pm.Date = datel;
 
                 var title = datatitle.ChildNodes[2].InnerText.Replace("&nbsp; &nbsp;Заголовок сообщения: ", "");
                 pm.Title = title;
+                pm.Url = pageUrl.AbsoluteUri;
                 msg.Add(pm);
             }
         }
@@ -136,6 +108,7 @@ public class ChatBot(string user, string password, string[] topics, string[] ski
         {
             Console.WriteLine("------------------------------");
             Console.WriteLine("Author: \t" + ms.Author);
+            Console.WriteLine("Base URL: \t" + ms.Url);
             Console.WriteLine("Date: \t" + ms.Date);
             Console.WriteLine("Id: \t" + ms.Mid);
             Console.WriteLine("PId: \t" + ms.Pid);
@@ -166,12 +139,18 @@ public class ChatBot(string user, string password, string[] topics, string[] ski
             return;
         }
 
-        var encoding = Encoding.GetEncoding("Windows-1251");
-        var chatResponse = await _deepSeek.Reply(last.Body);
-        var msg = $"{last.Body}";
+        IAiInterface module = _settings.Module switch
+        {
+            "localdeep" => new LocalDeep(),
+            "deepseek" => new DeepSeek(),
+            _ => new Script()
+        };
 
+        var answer = await module.Reply(last, settings);
+        
+        var encoding = Encoding.GetEncoding("Windows-1251");
         using var ctx = new MultipartFormDataContent();
-        ctx.Add(MakeContext(encoding,msg), "message"); // "textField" is the form field name
+        ctx.Add(MakeContext(encoding, answer.Answer), "message"); // "textField" is the form field name
         ctx.Add(MakeContext(encoding, "on"), "attach_sig");
         ctx.Add(MakeContext(encoding, "on"), "notify");
         ctx.Add(MakeContext(encoding, Sid), "sid");
@@ -180,24 +159,20 @@ public class ChatBot(string user, string password, string[] topics, string[] ski
         ctx.Add(MakeContext(encoding, "%CE%F2%EF%F0%E0%E2%E8%F2%FC+%28Ctrl%2BEnter%29"), "post");
         var address = "https://sysadmins.ru/posting.php?mode=reply&t=" + last.Pid;
 
-        if (chatResponse != null)
+
+        // Send the POST request
+        using var client = new HttpClient();
+        var rsp = await client.PostAsync(address, ctx);
+        // Check the response
+        if (rsp.IsSuccessStatusCode)
         {
-            // Send the POST request
-            var rsp = await _client.PostAsync(address, ctx);
-            // Check the response
-            if (rsp.IsSuccessStatusCode)
-            {
-                var responseData = await rsp.Content.ReadAsStringAsync();
-                Console.WriteLine("Add comment to: " + last.Body);
-                return;
-            }
-            else
-            {
-                Console.WriteLine("Error: " + rsp.StatusCode);
-            }
+            Console.WriteLine("Add comment to: " + last.Body);
+            Console.WriteLine("Answer is: " + answer.Answer);
+            return;
         }
+        Console.WriteLine("Error: " + rsp.StatusCode);
     }
-  
+
     private async Task Login()
     {
         var values = new Dictionary<string, string>
@@ -209,8 +184,8 @@ public class ChatBot(string user, string password, string[] topics, string[] ski
         };
 
         var content = new FormUrlEncodedContent(values);
-
-        var response = await _client.PostAsync(LoginAddress, content);
+        using var client = new HttpClient();
+        var response = await client.PostAsync(LoginAddress, content);
 
         var buffer = await response.Content.ReadAsByteArrayAsync();
 
