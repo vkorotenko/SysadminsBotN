@@ -68,6 +68,7 @@
  *deepseek - используется  api https://api-docs.deepseek.com/api/create-chat-completion 
  для настройки установите значения в **appsettings.Debug.json** ключа **"apiKey"**
  ну и конечно оплатите
+ 
  *localdeep - https://ollama.com/ запустите 1 консоль с командой
  ```
  ollama serve
