@@ -85,6 +85,15 @@
  2. Реализуйте метод **Task<ForumMessage> Reply(ForumMessage question, Settings settings);**
  3. Разместите этот файл в папке Worker
  4. Добавьте в комментарий в файле appsettings.json в значении **_module_comment**
+ 5. Добавьте конструктор в этот код
+ ```
+ IAiInterface module = _settings.Module switch
+        {
+            "localdeep" => new LocalDeep(),
+            "deepseek" => new DeepSeek(),
+            _ => new Script()
+        };
+```
  
 
 
