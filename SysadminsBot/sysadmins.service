@@ -1,0 +1,9 @@
+﻿[Unit]
+Description=Sysadmins chat bot
+ 
+[Service]
+Type=notify
+ExecStart=/opt/sysadmins/SysadminsBot
+ 
+[Install]
+WantedBy=multi-user.target
